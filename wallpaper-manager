@@ -1,0 +1,100 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# wallpaper-manager
+# created 2017-03-18 by tassaron
+import os
+from subprocess import call
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
+DEFAULTPATH = '/Images/Wallpapers'
+
+class Message(Gtk.Dialog):
+    def __init__(self, text, title='Message'):
+        Gtk.Dialog.__init__(self, title=title)
+        self.set_border_width(8)
+        self.set_modal(True)
+        self.bodyBox = self.get_content_area()
+        self.bodyBox.pack_start(Gtk.Label(str(text)), False, False, 0)
+        self.add_button(Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        self.show_all()
+
+class MainWindow(Gtk.Window):
+    def __init__(self):
+        Gtk.Window.__init__(self, title='Wallpaper')
+        self.set_border_width(10)
+        self.set_icon_name('preferences-desktop-wallpaper')
+        self.bodyBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.add(self.bodyBox)
+        setWallpaperButton = Gtk.Button("Set Wallpaper")
+        setWallpaperButton.connect('clicked', self.setWallpaper)
+        self.bodyBox.pack_start(setWallpaperButton, False, False, 0)
+        toggleShuffleButton = Gtk.Button("Toggle Shuffler")
+        self.bodyBox.pack_start(toggleShuffleButton, False, False, 0)
+        box = Gtk.Box(); box.pack_start(Gtk.Label("Watermark"), False, False, 0)
+        toggleWatermarkButton = Gtk.CheckButton()
+        box.pack_start(toggleWatermarkButton, False, False, 0)
+        self.WATERMARK=True
+        toggleShuffleButton.connect('clicked', self.toggleShuffle)
+        toggleWatermarkButton.connect('toggled', self.toggleWatermark)
+        toggleWatermarkButton.set_active(True)
+        self.bodyBox.pack_start(box, False, False, 0)
+        anotherBox = Gtk.Box(); anotherBox.pack_start(Gtk.Label("Sleep "), False, False, 0)
+        self.sleepEntry = Gtk.Entry()
+        self.sleepEntry.set_width_chars(8)
+        self.sleepEntry.set_text('Xm Xs')
+        anotherBox.pack_start(self.sleepEntry, False, False, 0)
+        self.bodyBox.pack_start(anotherBox, False, False, 0)
+
+    def setWallpaper(self, widget=None):
+        window = Gtk.FileChooserDialog()
+        shell('killall rnd-bg')
+        window.set_current_folder('%s%s' % (os.getenv("HOME"), DEFAULTPATH))
+        window.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.OK, Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+        window.show_all()
+        reply = window.run()
+        if reply == Gtk.ResponseType.OK:
+            wallpaper = window.get_filename()
+            # TODO: radio button to choose bt 'fill' 'center' 'tiled'
+            shell('hsetroot -fill %s' % wallpaper)
+        window.destroy()
+
+    def toggleShuffle(self, widget=None):
+        if isRndBgRunning():
+            window = Message("Wallpaper shuffler stopped.")
+            shell("killall rnd-bg")
+        else:
+            window = Message("Wallpaper shuffler started.")
+            if self.sleepEntry.get_text() == 'Xm Xs' or len(self.sleepEntry.get_text())<1:
+                string = 'rnd-bg'
+            else:
+                string = 'rnd-bg -sleep %s' % self.sleepEntry.get_text()
+            if not self.WATERMARK:
+                string += ' -watermark'
+            shell("(%s &)" % string)
+        window.run()
+        window.destroy()
+
+    def toggleWatermark(self, widget=None):
+        self.WATERMARK = not self.WATERMARK
+
+def shell(command):
+    return call(command, shell=True)
+
+def isRndBgRunning():
+        output = shell('pgrep rnd-bg')
+        if output==0:
+            return True
+        else:
+            return False
+
+def main():
+    window = MainWindow()
+    window.connect("delete-event", Gtk.main_quit)
+    window.show_all()
+    Gtk.main()
+
+if __name__ == '__main__':
+    main()
+
