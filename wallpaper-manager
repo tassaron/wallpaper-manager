@@ -29,7 +29,10 @@ class MainWindow(Gtk.Window):
         self.add(self.bodyBox)
         setWallpaperButton = Gtk.Button("Set Wallpaper")
         setWallpaperButton.connect('clicked', self.setWallpaper)
+        noWallpaperButton = Gtk.Button("Black Screen")
+        noWallpaperButton.connect('clicked', self.noWallpaper)
         self.bodyBox.pack_start(setWallpaperButton, False, False, 0)
+        self.bodyBox.pack_start(noWallpaperButton, False, False, 0)
         toggleShuffleButton = Gtk.Button("Toggle Shuffler")
         self.bodyBox.pack_start(toggleShuffleButton, False, False, 0)
         box = Gtk.Box(); box.pack_start(Gtk.Label("Watermark"), False, False, 0)
@@ -59,6 +62,9 @@ class MainWindow(Gtk.Window):
             # TODO: radio button to choose bt 'fill' 'center' 'tiled'
             shell('hsetroot -fill %s' % wallpaper)
         window.destroy()
+
+    def noWallpaper(self, widget=None):
+        shell('hsetroot -solid #000000')
 
     def toggleShuffle(self, widget=None):
         if isRndBgRunning():
