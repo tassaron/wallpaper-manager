@@ -1,11 +1,25 @@
 #!/bin/bash
 # by tassaron on march 5 2017
-# updated march 9 2017
+# last updated may 4 2017
+
+check_for() {
+    which "$1" &> /dev/null
+    if [ "$?" -ne 0 ]; then
+        echo "You need to install $1"
+        exit 1
+    fi
+}
+
+check_for hsetroot
+check_for display
 
 # EDIT THESE TO YOUR FILEPATHS
-WALLPAPER_DIR=/home/brianna/Images/Wallpapers
-WATERMARK_IMG=/home/brianna/Images/muffin/muffin-watermark.png
-SAVE_FILE=/home/brianna/magic/.rnd_bg # a temp file, put it anywhere writable
+WALLPAPER_DIR="${HOME}/Images/Wallpapers"
+WATERMARK_IMG="${HOME}/Images/muffin/muffin-watermark.png"
+SAVE_FILE="/tmp/zrnd_bg-lastusedwallpaper"
+if ! [ -f "$SAVE_FILE" ]; then
+    touch "$SAVE_FILE"
+fi
 
 # OPTIONS - change these to set default behaviour
 SLEEP_TIME=30s
@@ -22,39 +36,43 @@ create_resized_img() {
 }
 
 create_watermark_img() {
-    if [ ! -e $WALLPAPER_DIR/resized/"$new_img" ]; then
-        create_resized_img $WALLPAPER_DIR/"$new_img" $WALLPAPER_DIR/resized/"$new_img"
+    if ! [ -f "$WATERMARK_IMG" ]; then
+        echo "Watermark image is not accessible. Edit the constant in rnd-bg to fix this."
+        exit 1
+    fi
+    if [ ! -e "${WALLPAPER_DIR}/resized/${new_img}" ]; then
+        create_resized_img "${WALLPAPER_DIR}/${new_img}" "${WALLPAPER_DIR}/resized/${new_img}"
     fi
     # add watermark to southeast corner and convert to jpg
     if [ "$VERBOSE" = 1 ]; then echo "creating watermark image for $new_img..."; fi
-    composite -quality 90 -gravity SouthEast $WATERMARK_IMG $WALLPAPER_DIR/resized/"$new_img" $WALLPAPER_DIR/watermark/"$new_img"-watermark.jpg
+    composite -quality 90 -gravity SouthEast "$WATERMARK_IMG" "${WALLPAPER_DIR}/resized/${new_img}" "${WALLPAPER_DIR}/watermark/${new_img}-watermark.jpg"
 }
 
 set_new_bg () {
     # get old rnd img from the file
     rnd_img=$(cat $SAVE_FILE)
     # generate new images til one is not the previous one
-    new_img=$rnd_img
+    new_img="$rnd_img"
     while [ "$new_img" = "$rnd_img" ]; do
-        new_img=$(find $WALLPAPER_DIR -maxdepth 1 -type f | shuf -n 1);
+        new_img="$(find ${WALLPAPER_DIR} -maxdepth 1 -type f | shuf -n 1)"
     done
     # save this image to the file
-    echo "$new_img" > $SAVE_FILE
+    echo "$new_img" > "$SAVE_FILE"
 
     if [ "$WATERMARK" = 1 ]; then
         new_img=$(basename "$new_img")
         # first create watermark image if it does not exist
-        if [ ! -e $WALLPAPER_DIR/watermark/"$new_img"-watermark.jpg ]; then
+        if [ ! -e "${WALLPAPER_DIR}/watermark/${new_img}-watermark.jpg" ]; then
             create_watermark_img
         fi
         # set background with watermark
-        hsetroot -center $WALLPAPER_DIR/watermark/"$new_img"-watermark.jpg
+        hsetroot -center "${WALLPAPER_DIR}/watermark/${new_img}-watermark.jpg"
     else
         # set background without watermark
-        if [ ! -e $WALLPAPER_DIR/resized/$(basename "$new_img") ]; then
-            create_resized_img "$new_img" $WALLPAPER_DIR/resized/$(basename "$new_img")
+        if [ ! -e "${WALLPAPER_DIR}/resized/$(basename ${new_img})" ]; then
+            create_resized_img "$new_img" "${WALLPAPER_DIR}/resized/$(basename ${new_img})"
         fi
-        hsetroot -center $WALLPAPER_DIR/resized/$(basename "$new_img")
+        hsetroot -center "${WALLPAPER_DIR}/resized/$(basename ${new_img})"
     fi
 }
 
@@ -72,11 +90,11 @@ for argument; do
     if [ "$argument" = "-res" ]; then getting_res=1; fi
 done
 # create directories if they don't exist
-if [ ! -d "$WALLPAPER_DIR/watermark" ]; then
-    mkdir $WALLPAPER_DIR/watermark
+if [ ! -d "${WALLPAPER_DIR}/watermark" ]; then
+    mkdir "${WALLPAPER_DIR}/watermark"
 fi
-if [ ! -d "$WALLPAPER_DIR/resized" ]; then
-    mkdir $WALLPAPER_DIR/resized
+if [ ! -d "${WALLPAPER_DIR}/resized" ]; then
+    mkdir "${WALLPAPER_DIR}/resized"
 fi
 # loop
 while true; do

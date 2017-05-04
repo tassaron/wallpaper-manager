@@ -8,7 +8,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-DEFAULTPATH = '/Images/Wallpapers'
+DEFAULTBROWSEPATH = '/Images/Wallpapers'
 
 class Message(Gtk.Dialog):
     def __init__(self, text, title='Message'):
@@ -29,19 +29,32 @@ class MainWindow(Gtk.Window):
         self.add(self.bodyBox)
         setWallpaperButton = Gtk.Button("Set Wallpaper")
         setWallpaperButton.connect('clicked', self.setWallpaper)
-        noWallpaperButton = Gtk.Button("Black Screen")
+
+        sep1 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        noWallpaperButton = Gtk.Button("Solid Color")
         noWallpaperButton.connect('clicked', self.noWallpaper)
         self.bodyBox.pack_start(setWallpaperButton, False, False, 0)
+        self.bodyBox.pack_start(sep1, False, False, 6)
         self.bodyBox.pack_start(noWallpaperButton, False, False, 0)
+        # color picker
+        colorBox = Gtk.Box(); colorBox.pack_start(Gtk.Label("Hex "), False, False, 0)
+        self.hexEntry = Gtk.Entry()
+        self.hexEntry.set_width_chars(8)
+        self.hexEntry.set_text('#421C52')
+        colorBox.pack_start(self.hexEntry, False, False, 0)
+        self.bodyBox.pack_start(colorBox, False, False, 0)
+
+        sep2 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        self.bodyBox.pack_start(sep2, False, False, 6)
         toggleShuffleButton = Gtk.Button("Toggle Shuffler")
         self.bodyBox.pack_start(toggleShuffleButton, False, False, 0)
         box = Gtk.Box(); box.pack_start(Gtk.Label("Watermark"), False, False, 0)
         toggleWatermarkButton = Gtk.CheckButton()
         box.pack_start(toggleWatermarkButton, False, False, 0)
-        self.WATERMARK=True
         toggleShuffleButton.connect('clicked', self.toggleShuffle)
         toggleWatermarkButton.connect('toggled', self.toggleWatermark)
-        toggleWatermarkButton.set_active(True)
+        self.WATERMARK=False
+        toggleWatermarkButton.set_active(False)
         self.bodyBox.pack_start(box, False, False, 0)
         anotherBox = Gtk.Box(); anotherBox.pack_start(Gtk.Label("Sleep "), False, False, 0)
         self.sleepEntry = Gtk.Entry()
@@ -53,7 +66,7 @@ class MainWindow(Gtk.Window):
     def setWallpaper(self, widget=None):
         window = Gtk.FileChooserDialog()
         shell('killall rnd-bg')
-        window.set_current_folder('%s%s' % (os.getenv("HOME"), DEFAULTPATH))
+        window.set_current_folder('%s%s' % (os.getenv("HOME"), DEFAULTBROWSEPATH))
         window.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.OK, Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         window.show_all()
         reply = window.run()
@@ -64,7 +77,8 @@ class MainWindow(Gtk.Window):
         window.destroy()
 
     def noWallpaper(self, widget=None):
-        shell('hsetroot -solid #000000')
+        shell('killall rnd-bg')
+        shell("hsetroot -solid '%s'" % self.hexEntry.get_text())
 
     def toggleShuffle(self, widget=None):
         if isRndBgRunning():
@@ -76,7 +90,7 @@ class MainWindow(Gtk.Window):
                 string = 'rnd-bg'
             else:
                 string = 'rnd-bg -sleep %s' % self.sleepEntry.get_text()
-            if not self.WATERMARK:
+            if self.WATERMARK:
                 string += ' -watermark'
             shell("(%s &)" % string)
         window.run()
@@ -89,7 +103,11 @@ def shell(command):
     return call(command, shell=True)
 
 def isRndBgRunning():
-    return shell('pgrep rnd-bg') == 0
+        output = shell('pgrep rnd-bg')
+        if output==0:
+            return True
+        else:
+            return False
 
 def main():
     window = MainWindow()
