@@ -1,12 +1,40 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# wallpaper-manager
+'''
+Wallpaper Manager lets you set the X root window image, colour, or run rnd-bg
+'''
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~==~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~#
+# Copyright (C) 2017 Brianna Rainey
+#
+# Wallpaper Manager is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program, in a file named "COPYING".  If not, see
+# <http://www.gnu.org/licenses/>
+#
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~==~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~#
 # created 2017-03-18 by tassaron
-import os
+# last updated 2017-05-04
+#
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~==~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~#
+
 from subprocess import call
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+import os
+try:
+    import gi
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk
+except ImportError:
+    print 'requires gtk3.0'
+    quit(1)
 
 DEFAULTBROWSEPATH = '/Images/Wallpapers'
 
@@ -64,8 +92,9 @@ class MainWindow(Gtk.Window):
         self.bodyBox.pack_start(anotherBox, False, False, 0)
 
     def setWallpaper(self, widget=None):
+        if isRndBgRunning():
+            stopShuffling()
         window = Gtk.FileChooserDialog()
-        shell('killall rnd-bg')
         window.set_current_folder('%s%s' % (os.getenv("HOME"), DEFAULTBROWSEPATH))
         window.add_buttons(Gtk.STOCK_OK, Gtk.ResponseType.OK, Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
         window.show_all()
@@ -77,13 +106,13 @@ class MainWindow(Gtk.Window):
         window.destroy()
 
     def noWallpaper(self, widget=None):
-        shell('killall rnd-bg')
+        if isRndBgRunning():
+            stopShuffling()
         shell("hsetroot -solid '%s'" % self.hexEntry.get_text())
 
     def toggleShuffle(self, widget=None):
         if isRndBgRunning():
-            window = Message("Wallpaper shuffler stopped.")
-            shell("killall rnd-bg")
+            stopShuffling()
         else:
             window = Message("Wallpaper shuffler started.")
             if self.sleepEntry.get_text() == 'Xm Xs' or len(self.sleepEntry.get_text())<1:
@@ -93,8 +122,8 @@ class MainWindow(Gtk.Window):
             if self.WATERMARK:
                 string += ' -watermark'
             shell("(%s &)" % string)
-        window.run()
-        window.destroy()
+            window.run()
+            window.destroy()
 
     def toggleWatermark(self, widget=None):
         self.WATERMARK = not self.WATERMARK
@@ -108,6 +137,12 @@ def isRndBgRunning():
             return True
         else:
             return False
+
+def stopShuffling():
+    window = Message("Wallpaper shuffler stopped.")
+    shell("killall rnd-bg > /dev/null")
+    window.run()
+    window.destroy()
 
 def main():
     window = MainWindow()
