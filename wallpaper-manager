@@ -101,9 +101,9 @@ class MainWindow(Gtk.Window):
             if self.sleepEntry.get_text() == 'Xm Xs' or len(self.sleepEntry.get_text())<1:
                 string = 'rnd-bg'
             else:
-                string = 'rnd-bg -sleep %s' % self.sleepEntry.get_text()
+                string = 'rnd-bg --sleep %s' % self.sleepEntry.get_text()
             if self.WATERMARK:
-                string += ' -watermark'
+                string += ' --watermark'
             shell("(%s &)" % string)
             window.run()
             window.destroy()

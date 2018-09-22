@@ -10,7 +10,6 @@
 WALLPAPER_DIR="${HOME}/Images/Wallpapers"
 WATERMARK_IMG="${HOME}/Images/muffin/muffin-watermark.png"
 
-
 check_for() {
     which "$1" &> /dev/null
     if [ "$?" -ne 0 ]; then
@@ -34,6 +33,7 @@ SLEEP_TIME=x
 RESOLUTION=1366x768
 VERBOSE=0
 WATERMARK=0
+XDISPLAY=:0.0
 
 # FUNCTIONS
 create_resized_img() {
@@ -87,23 +87,29 @@ set_new_bg () {
 }
 
 print_help () {
-    echo "usage: rnd-bg [--help] [--kill] [--verbose] [--watermark] [--sleep] XmXs [--res] 1366x768"
+    echo "usage: rnd-bg [--help] [--kill] [--verbose] [--watermark] [--display :0.0] [--sleep XmXs] [--res 1366x768]"
 }
 
-# MAIN
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~==~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~#
+# MAIN FUNCTION BELOW
+#
+#=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~==~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~#
 # set options
 active=1
 getting_sleep=0
 getting_res=0
+getting_display=0
 for argument; do
     if [ "$getting_sleep" = 1 ]; then SLEEP_TIME="$argument"; getting_sleep=0; continue; fi
     if [ "$getting_res" = 1 ]; then RESOLUTION="$argument"; getting_res=0; continue; fi
+    if [ "$getting_display" = 1 ]; then XDISPLAY="$argument"; getting_display=0; continue; fi
     if [ "$argument" = "-h" ] || [ "$argument" = "--help" ]; then print_help; active=0; break; fi
     if [ "$argument" = "-k" ] || [ "$argument" = "--kill" ]; then killall rnd-bg; fi
     if [ "$argument" = "-v" ] || [ "$argument" = "--verbose" ]; then VERBOSE=1; fi
     if [ "$argument" = "-w" ] || [ "$argument" = "--watermark" ]; then WATERMARK=1; fi
     if [ "$argument" = "-s" ] || [ "$argument" = "--sleep" ]; then getting_sleep=1; fi
     if [ "$argument" = "-r" ] || [ "$argument" = "--res" ]; then getting_res=1; fi
+    if [ "$argument" = "-d" ] || [ "$argument" = "--display" ]; then getting_display=1; fi
 done
 # create directories if they don't exist
 if [ ! -d "${WALLPAPER_DIR}/watermark" ]; then
@@ -112,6 +118,8 @@ fi
 if [ ! -d "${WALLPAPER_DIR}/resized" ]; then
     mkdir "${WALLPAPER_DIR}/resized"
 fi
+# export DISPLAY variable in case that's necessary (e.g., for cron)
+export DISPLAY=$XDISPLAY
 # loop
 while [ "$active" = 1 ]; do
     set_new_bg
